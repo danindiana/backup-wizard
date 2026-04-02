@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# /etc/update-motd.d/94-backup-status
+# Non-destructive MOTD fragment: shows backup system status at login.
+# Install: sudo cp motd/94-backup-status /etc/update-motd.d/ && sudo chmod +x /etc/update-motd.d/94-backup-status
+
+STATUS_LOG="/var/log/backup-wizard/last_run.log"
+
+# Terminal colors (always plain in MOTD context — may not be a tty)
+BOLD='\033[1m'; CYAN='\033[0;36m'; GREEN='\033[0;32m'
+YELLOW='\033[1;33m'; RED='\033[0;31m'; RESET='\033[0m'
+
+echo ""
+echo -e "${BOLD}${CYAN}━━━━  Backup System  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+
+# --- Last backup operations ---
+if [[ -f "$STATUS_LOG" && -s "$STATUS_LOG" ]]; then
+    echo -e "${BOLD}Last backup runs:${RESET}"
+    # Show the most recent entry per tag (sort by timestamp, dedupe by tag)
+    declare -A seen
+    while IFS= read -r line; do
+        tag=$(echo "$line" | grep -oP '\[[^\]]+\]' | head -1)
+        if [[ -n "$tag" && -z "${seen[$tag]+x}" ]]; then
+            seen["$tag"]=1
+            status=$(echo "$line" | grep -oP 'OK|WARN|FAILED' | head -1)
+            case "$status" in
+                OK)     icon="${GREEN}✓${RESET}" ;;
+                WARN)   icon="${YELLOW}⚠${RESET}" ;;
+                FAILED) icon="${RED}✗${RESET}" ;;
+                *)      icon=" " ;;
+            esac
+            ts=$(echo "$line" | awk '{print $1, $2}')
+            msg=$(echo "$line" | sed 's/^[^ ]* [^ ]* *\[[^\]]*\] *//')
+            printf "  %b  %-30s  %s  %s\n" "$icon" "$tag" "$ts" "$msg"
+        fi
+    done < <(sort -r "$STATUS_LOG")
+else
+    echo -e "  ${YELLOW}No backup runs recorded yet.${RESET}  Run: backup-wizard"
+fi
+
+# --- Mount status ---
+echo ""
+echo -e "${BOLD}Backup destinations:${RESET}"
+declare -A MOUNT_LABELS=(
+    ["/mnt/hitachi_2tb"]="Hitachi 2TB  (AI-ML + restic repos)"
+    ["/mnt/pdf_backup"]="SDA ext4     (PDF archive backup)"
+    ["/mnt/raid0"]="RAID0        (PDF archive source)"
+)
+for mp in "/mnt/hitachi_2tb" "/mnt/pdf_backup" "/mnt/raid0"; do
+    label="${MOUNT_LABELS[$mp]}"
+    if mountpoint -q "$mp" 2>/dev/null; then
+        free=$(df -h "$mp" 2>/dev/null | awk 'NR==2{print $4}')
+        used=$(df -h "$mp" 2>/dev/null | awk 'NR==2{print $5}')
+        echo -e "  ${GREEN}✓${RESET}  ${mp}  ${label}  — free: ${free}  used: ${used}"
+    else
+        echo -e "  ${RED}✗${RESET}  ${mp}  ${label}  — NOT MOUNTED"
+    fi
+done
+
+# --- Quick reference ---
+echo ""
+echo -e "  ${CYAN}backup-wizard${RESET}            interactive menu"
+echo -e "  ${CYAN}backup-wizard --aiml${RESET}      rsync AI-ML papers now"
+echo -e "  ${CYAN}backup-wizard --aiml-restic${RESET}  compressed snapshot now"
+echo -e "  ${CYAN}backup-wizard --status${RESET}    status report"
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo ""
