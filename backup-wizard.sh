@@ -35,16 +35,22 @@ USAGE
   ./backup-wizard.sh [FLAG]
 
 FLAGS
-  (none)           Launch interactive menu
-  --status         Print last backup status and disk usage, then exit
-  --aiml           Rsync AI-ML Papers → /mnt/hitachi_2tb/AI-ML_Papers_backup (non-interactive)
-  --aiml-restic    Restic (compressed) backup of AI-ML Papers (non-interactive)
-  --pdf            PDF archive rsync via pdf-backup.sh (non-interactive, requires sudo)
-  --help           Show this help
+  (none)              Launch interactive menu
+  --status            Print last backup status and disk usage, then exit
+  --aiml              Rsync AI-ML Papers → /mnt/hitachi_2tb/AI-ML_Papers_backup
+  --cs                Rsync computer science → /mnt/hitachi_2tb/computer_science_backup
+  --computers         Rsync computers → /mnt/hitachi_2tb/computers_backup
+  --all-archives      Rsync all three paper archives in one shot
+  --aiml-restic       Restic (compressed) backup of AI-ML Papers
+  --pdf               PDF archive rsync via pdf-backup.sh (requires sudo)
+  --help              Show this help
 
 EXAMPLES
   ./backup-wizard.sh                    # interactive wizard
+  ./backup-wizard.sh --all-archives     # rsync all three archives at once
   ./backup-wizard.sh --aiml             # quick rsync of AI-ML papers
+  ./backup-wizard.sh --cs               # quick rsync of computer science
+  ./backup-wizard.sh --computers        # quick rsync of computers
   ./backup-wizard.sh --aiml-restic      # compressed snapshot of AI-ML papers
   sudo ./backup-wizard.sh --pdf         # full PDF archive backup
 EOF
@@ -56,6 +62,18 @@ EOF
             ;;
         --aiml)
             backup_aiml_papers 0
+            exit $?
+            ;;
+        --cs)
+            backup_computer_science 0
+            exit $?
+            ;;
+        --computers)
+            backup_computers 0
+            exit $?
+            ;;
+        --all-archives)
+            backup_all_archives 0
             exit $?
             ;;
         --aiml-restic)
@@ -133,9 +151,12 @@ menu_rsync() {
     while true; do
         echo ""
         echo -e "${BOLD}${BLUE}── Rsync Backups ──────────────────────────────────────${RESET}"
-        echo "  1) AI-ML Papers  →  /mnt/hitachi_2tb/AI-ML_Papers_backup"
-        echo "  2) PDF Archive   →  /mnt/pdf_backup  (via pdf-backup.sh)"
-        echo "  3) Custom source/destination"
+        echo "  1) ALL archives  (AI-ML Papers + computer science + computers)"
+        echo "  2) AI-ML Papers      →  /mnt/hitachi_2tb/AI-ML_Papers_backup"
+        echo "  3) computer science  →  /mnt/hitachi_2tb/computer_science_backup"
+        echo "  4) computers         →  /mnt/hitachi_2tb/computers_backup"
+        echo "  5) PDF Archive       →  /mnt/pdf_backup  (via pdf-backup.sh)"
+        echo "  6) Custom source/destination"
         echo "  b) Back"
         echo ""
         read -r -p "$(echo -e "${CYAN}Select: ${RESET}")" choice
@@ -143,11 +164,32 @@ menu_rsync() {
             1)
                 local dry=0
                 confirm "Dry run first?" && dry=1
+                backup_all_archives "$dry"
+                [[ "$dry" == "1" ]] && confirm "Proceed with real backup?" && backup_all_archives 0
+                pause
+                ;;
+            2)
+                local dry=0
+                confirm "Dry run first?" && dry=1
                 backup_aiml_papers "$dry"
                 [[ "$dry" == "1" ]] && confirm "Proceed with real backup?" && backup_aiml_papers 0
                 pause
                 ;;
-            2)
+            3)
+                local dry=0
+                confirm "Dry run first?" && dry=1
+                backup_computer_science "$dry"
+                [[ "$dry" == "1" ]] && confirm "Proceed with real backup?" && backup_computer_science 0
+                pause
+                ;;
+            4)
+                local dry=0
+                confirm "Dry run first?" && dry=1
+                backup_computers "$dry"
+                [[ "$dry" == "1" ]] && confirm "Proceed with real backup?" && backup_computers 0
+                pause
+                ;;
+            5)
                 if [[ $EUID -ne 0 ]]; then
                     log_warn "PDF archive backup requires root. Re-running with sudo..."
                     sudo bash "$0" --pdf
@@ -156,7 +198,7 @@ menu_rsync() {
                 fi
                 pause
                 ;;
-            3)
+            6)
                 backup_custom_rsync
                 pause
                 ;;

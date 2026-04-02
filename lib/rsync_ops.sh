@@ -87,6 +87,42 @@ backup_aiml_papers() {
 }
 
 # ---------------------------------------------------------------------------
+# Preset: computer science backup
+# ---------------------------------------------------------------------------
+backup_computer_science() {
+    local dry_run="${1:-0}"
+    local src="${CS_SRC:-$DEFAULT_CS_SRC}"
+    local dst="${CS_DST:-$DEFAULT_CS_DST}"
+
+    require_mount "/mnt/hitachi_2tb" || return 1
+    run_rsync "$src" "$dst" "computer-science" "$dry_run" "0"
+}
+
+# ---------------------------------------------------------------------------
+# Preset: computers backup
+# ---------------------------------------------------------------------------
+backup_computers() {
+    local dry_run="${1:-0}"
+    local src="${COMPUTERS_SRC:-$DEFAULT_COMPUTERS_SRC}"
+    local dst="${COMPUTERS_DST:-$DEFAULT_COMPUTERS_DST}"
+
+    require_mount "/mnt/hitachi_2tb" || return 1
+    run_rsync "$src" "$dst" "computers" "$dry_run" "0"
+}
+
+# ---------------------------------------------------------------------------
+# Convenience: back up all three paper archives in one shot
+# ---------------------------------------------------------------------------
+backup_all_archives() {
+    local dry_run="${1:-0}"
+    log_header "Full Archive Backup (AI-ML Papers + computer science + computers)"
+    backup_aiml_papers    "$dry_run"
+    backup_computer_science "$dry_run"
+    backup_computers      "$dry_run"
+    log_ok "All archive backups complete."
+}
+
+# ---------------------------------------------------------------------------
 # Preset: PDF Archive (delegates to the existing pdf-backup.sh if available,
 # otherwise runs rsync directly)
 # ---------------------------------------------------------------------------
