@@ -1,0 +1,130 @@
+// 03-wizard-menu-flow.dot
+// Interactive wizard menu tree and non-interactive CLI flag paths.
+// Render: dot -Tpng 03-wizard-menu-flow.dot -o 03-wizard-menu-flow.png
+//         dot -Tsvg 03-wizard-menu-flow.dot -o 03-wizard-menu-flow.svg
+
+digraph wizard_flow {
+
+    graph [
+        bgcolor   = "#0d0d0d"
+        fontname  = "Courier New"
+        fontcolor = "#cccccc"
+        label     = "worlock backup-wizard — Menu Flow & CLI Flags"
+        labelloc  = "t"
+        fontsize  = 20
+        rankdir   = TB
+        splines = spline
+        pad       = 0.7
+        nodesep   = 0.5
+        ranksep   = 0.8
+    ]
+
+    node [
+        fontname = "Courier New"
+        fontsize = 11
+        style    = "filled,rounded"
+        shape    = box
+    ]
+
+    edge [
+        fontname = "Courier New"
+        fontsize = 9
+        penwidth = 1.8
+        color    = "#444444"
+    ]
+
+    // ── Entry points ───────────────────────────────────────────
+    cli [label="backup-wizard\n[CLI entry point]", fillcolor="#0f3460", color="#00f5ff", fontcolor="#00f5ff", shape=invhouse, width=3]
+
+    subgraph cluster_flags {
+        label     = "Non-Interactive Flags  (exit after completion)"
+        fontcolor = "#ff6600"
+        color     = "#ff6600"
+        style     = "rounded"
+        bgcolor   = "#0d0800"
+        fontsize  = 11
+
+        flag_aiml    [label="--aiml\nrsync AI-ML Papers", fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+        flag_cs      [label="--cs\nrsync computer science", fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+        flag_comps   [label="--computers\nrsync computers", fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+        flag_all     [label="--all-archives\nrsync all three", fillcolor="#0a1a0a", color="#ffff00", fontcolor="#ffff00", penwidth=2]
+        flag_restic  [label="--aiml-restic\nrestic snapshot", fillcolor="#1a001a", color="#bf00ff", fontcolor="#bf00ff"]
+        flag_pdf     [label="--pdf  (sudo)\npdf-backup.sh", fillcolor="#1a0a00", color="#ff6600", fontcolor="#ff6600"]
+        flag_status  [label="--status\nprint status + exit", fillcolor="#1a1a00", color="#ffff00", fontcolor="#ffff00"]
+        flag_help    [label="--help\nprint usage + exit", fillcolor="#1a1a1a", color="#888888", fontcolor="#888888"]
+    }
+
+    // ── Main menu ──────────────────────────────────────────────
+    main [label="Main Menu", fillcolor="#0f3460", color="#00f5ff", fontcolor="#00f5ff", shape=Mrecord, width=2.5]
+
+    // ── Rsync submenu ──────────────────────────────────────────
+    subgraph cluster_rsync {
+        label     = "Rsync Submenu  [1]"
+        fontcolor = "#39ff14"
+        color     = "#39ff14"
+        style     = "rounded"
+        bgcolor   = "#020d02"
+        fontsize  = 11
+
+        r1 [label="1  ALL archives\n(aiml + cs + computers)", fillcolor="#0a1a0a", color="#ffff00", fontcolor="#ffff00"]
+        r2 [label="2  AI-ML Papers", fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+        r3 [label="3  computer science", fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+        r4 [label="4  computers", fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+        r5 [label="5  PDF Archive\n(sudo via pdf-backup.sh)", fillcolor="#1a0a00", color="#ff6600", fontcolor="#ff6600"]
+        r6 [label="6  Custom source/dest", fillcolor="#1a1a1a", color="#888888", fontcolor="#888888"]
+    }
+
+    // ── Restic submenu ─────────────────────────────────────────
+    subgraph cluster_restic {
+        label     = "Restic Submenu  [2]"
+        fontcolor = "#bf00ff"
+        color     = "#bf00ff"
+        style     = "rounded"
+        bgcolor   = "#06000a"
+        fontsize  = 11
+
+        rc1 [label="1  AI-ML Papers\n(max compression)", fillcolor="#1a001a", color="#bf00ff", fontcolor="#bf00ff"]
+        rc2 [label="2  Custom source", fillcolor="#1a001a", color="#bf00ff", fontcolor="#bf00ff"]
+        rc3 [label="3  List snapshots", fillcolor="#1a001a", color="#00f5ff", fontcolor="#00f5ff"]
+        rc4 [label="4  Restore snapshot", fillcolor="#1a001a", color="#00f5ff", fontcolor="#00f5ff"]
+        rc5 [label="5  Prune old snapshots", fillcolor="#1a001a", color="#ff6600", fontcolor="#ff6600"]
+        rc6 [label="6  Init new repo", fillcolor="#1a001a", color="#888888", fontcolor="#888888"]
+    }
+
+    // ── Status & Config ────────────────────────────────────────
+    subgraph cluster_other {
+        label     = "Other Menus"
+        color     = "#444444"
+        style     = "rounded"
+        bgcolor   = "#0a0a0a"
+        fontsize  = 11
+
+        status_menu [label="3  Backup Status\nlast runs · disk usage\nmount health", fillcolor="#1a1a00", color="#ffff00", fontcolor="#ffff00"]
+        config_menu [label="4  Configuration\nsource/dest paths\nrestic password", fillcolor="#001a1a", color="#00f5ff", fontcolor="#00f5ff"]
+    }
+
+    // ── Dry-run gates ──────────────────────────────────────────
+    dryrun [label="Dry run?\n[y/N]", fillcolor="#1a0a00", color="#ff6600", fontcolor="#ff6600", shape=diamond]
+    proceed [label="Proceed?\n[y/N]", fillcolor="#1a0a00", color="#ff6600", fontcolor="#ff6600", shape=diamond]
+
+    // ── Edges ─────────────────────────────────────────────────
+    cli -> flag_aiml   [color="#39ff14", label="--aiml"]
+    cli -> flag_cs     [color="#39ff14", label="--cs"]
+    cli -> flag_comps  [color="#39ff14", label="--computers"]
+    cli -> flag_all    [color="#ffff00", label="--all-archives", penwidth=2]
+    cli -> flag_restic [color="#bf00ff", label="--aiml-restic"]
+    cli -> flag_pdf    [color="#ff6600", label="--pdf"]
+    cli -> flag_status [color="#ffff00", label="--status"]
+    cli -> flag_help   [color="#888888", label="--help"]
+    cli -> main        [color="#00f5ff", label="(no flags)", penwidth=2.5]
+
+    main -> cluster_rsync  [color="#39ff14", label="1", lhead=cluster_rsync]
+    main -> cluster_restic [color="#bf00ff", label="2", lhead=cluster_restic]
+    main -> status_menu    [color="#ffff00", label="3"]
+    main -> config_menu    [color="#00f5ff", label="4"]
+
+    r2 -> dryrun    [color="#ff6600"]
+    dryrun -> proceed [color="#39ff14", label="y → dry run first"]
+    dryrun -> r2      [color="#39ff14", label="n → run now", style=dashed]
+    proceed -> r2     [color="#39ff14", label="y → real backup", style=dashed]
+}

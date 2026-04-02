@@ -1,0 +1,82 @@
+// 02-backup-flows.dot
+// Simplified source → tool → destination backup flow matrix.
+// Render: dot -Tpng 02-backup-flows.dot -o 02-backup-flows.png
+//         dot -Tsvg 02-backup-flows.dot -o 02-backup-flows.svg
+
+digraph backup_flows {
+
+    graph [
+        bgcolor   = "#0d0d0d"
+        fontname  = "Courier New"
+        fontcolor = "#cccccc"
+        label     = "worlock — Backup Flow Matrix"
+        labelloc  = "t"
+        fontsize  = 20
+        rankdir   = LR
+        splines = spline
+        pad       = 0.8
+        nodesep   = 0.7
+        ranksep   = 1.6
+    ]
+
+    node [
+        fontname = "Courier New"
+        fontsize = 12
+        style    = "filled,rounded"
+        shape    = box
+    ]
+
+    edge [
+        fontname = "Courier New"
+        fontsize = 10
+        penwidth = 2.5
+    ]
+
+    // ── Column 1: Sources ──────────────────────────────────────
+    { rank = same
+        src_aiml      [label="AI-ML_Papers\n~/Documents/AI-ML_Papers\n16GB · 5,937 PDFs",          fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+        src_cs        [label="computer science\n~/Documents/computer science\n2.3GB · 1,117 files", fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+        src_computers [label="computers\n~/Documents/computers\n3.7GB · 1,540 files",               fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+        src_raid0     [label="PDF Archive\n/mnt/raid0  (RAID0)\n~4.7T · ~2.5M files",              fillcolor="#1a0a00", color="#ff6600", fontcolor="#ff6600"]
+    }
+
+    // ── Column 2: Tools ────────────────────────────────────────
+    { rank = same
+        tool_rsync  [label="rsync\n--archive\n--partial\n--append-verify\n(resume-safe)", fillcolor="#001a2e", color="#00bfff", fontcolor="#00bfff",  shape=diamond, width=2]
+        tool_restic [label="restic\n--compression max\n(zstd)\nAES-256 encrypted\nversioned",       fillcolor="#1a001a", color="#bf00ff", fontcolor="#bf00ff", shape=diamond, width=2]
+        tool_pdf    [label="pdf-backup.sh\n(rsync wrapper)\nPID guard · resume\n--max-size limit",  fillcolor="#1a0a00", color="#ff6600", fontcolor="#ff6600", shape=diamond, width=2]
+    }
+
+    // ── Column 3: Destinations ─────────────────────────────────
+    { rank = same
+        dst_aiml      [label="AI-ML_Papers_backup/\n/mnt/hitachi_2tb\nrsync mirror",           fillcolor="#0a001a", color="#ff00ff", fontcolor="#ff00ff"]
+        dst_cs        [label="computer_science_backup/\n/mnt/hitachi_2tb\nrsync mirror",        fillcolor="#0a001a", color="#ff00ff", fontcolor="#ff00ff"]
+        dst_computers [label="computers_backup/\n/mnt/hitachi_2tb\nrsync mirror",               fillcolor="#0a001a", color="#ff00ff", fontcolor="#ff00ff"]
+        dst_restic    [label="restic_repos/ai-ml-papers/\n/mnt/hitachi_2tb\nencrypted · deduped · versioned", fillcolor="#0a001a", color="#bf00ff", fontcolor="#bf00ff"]
+        dst_pdf       [label="pdf_backup\n/mnt/pdf_backup  (sda)\nrsync mirror · 575G free",    fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+    }
+
+    // ── Edges: sources → tools ─────────────────────────────────
+    src_aiml      -> tool_rsync  [color="#39ff14", label="--aiml\n--all-archives"]
+    src_cs        -> tool_rsync  [color="#39ff14", label="--cs\n--all-archives"]
+    src_computers -> tool_rsync  [color="#39ff14", label="--computers\n--all-archives"]
+    src_raid0     -> tool_pdf    [color="#ff6600", label="--pdf  (sudo)"]
+    src_aiml      -> tool_restic [color="#bf00ff", label="--aiml-restic", style=dashed]
+
+    // ── Edges: tools → destinations ────────────────────────────
+    tool_rsync  -> dst_aiml      [color="#ff00ff"]
+    tool_rsync  -> dst_cs        [color="#ff00ff"]
+    tool_rsync  -> dst_computers [color="#ff00ff"]
+    tool_restic -> dst_restic    [color="#bf00ff", style=dashed]
+    tool_pdf    -> dst_pdf       [color="#ff6600"]
+
+    // ── Status log ────────────────────────────────────────────
+    statuslog [label="/var/log/backup-wizard/\nlast_run.log\n(updated after each job)", fillcolor="#1a1a00", color="#ffff00", fontcolor="#ffff00", shape=note]
+    tool_rsync  -> statuslog [color="#ffff00", style=dotted, arrowhead=open, penwidth=1]
+    tool_restic -> statuslog [color="#ffff00", style=dotted, arrowhead=open, penwidth=1]
+    tool_pdf    -> statuslog [color="#ffff00", style=dotted, arrowhead=open, penwidth=1]
+
+    // ── MOTD reads status log ──────────────────────────────────
+    motd [label="MOTD\n/etc/update-motd.d/\n94-backup-status", fillcolor="#001a1a", color="#00f5ff", fontcolor="#00f5ff", shape=parallelogram]
+    statuslog -> motd [color="#00f5ff", style=dashed, label="read at login", penwidth=1.5]
+}

@@ -1,0 +1,178 @@
+// 04-component-architecture.dot
+// Code component relationships: scripts, config, logs, MOTD, external tools.
+// Render: dot -Tpng 04-component-architecture.dot -o 04-component-architecture.png
+//         dot -Tsvg 04-component-architecture.dot -o 04-component-architecture.svg
+
+digraph component_architecture {
+
+    graph [
+        bgcolor   = "#0d0d0d"
+        fontname  = "Courier New"
+        fontcolor = "#cccccc"
+        label     = "worlock backup-wizard — Component Architecture"
+        labelloc  = "t"
+        fontsize  = 20
+        rankdir   = TB
+        splines   = polyline
+        pad       = 0.8
+        nodesep   = 0.6
+        ranksep   = 1.0
+        compound  = true
+    ]
+
+    node [
+        fontname = "Courier New"
+        fontsize = 11
+        style    = "filled,rounded"
+        shape    = box
+    ]
+
+    edge [
+        fontname = "Courier New"
+        fontsize = 9
+        penwidth = 1.8
+    ]
+
+    // ── Entry point ────────────────────────────────────────────
+    wizard [
+        label     = "backup-wizard.sh\n/usr/local/bin/backup-wizard\n(symlink)\n\nhandle_cli_flags()\nmain_menu()\nmenu_rsync()\nmenu_restic()\nmenu_config()\nshow_status()"
+        fillcolor = "#0f3460"
+        color     = "#00f5ff"
+        fontcolor = "#00f5ff"
+        shape     = component
+        width     = 3
+    ]
+
+    // ── Libraries ──────────────────────────────────────────────
+    subgraph cluster_libs {
+        label     = "lib/  (sourced at startup)"
+        fontcolor = "#00bfff"
+        color     = "#00bfff"
+        style     = "rounded"
+        bgcolor   = "#00050f"
+        fontsize  = 12
+
+        common [
+            label     = "common.sh\n─────────────────\nColors · log_info/warn/error\nwrite_status_entry()\nrequire_mount()\ncheck_free_space()\nensure_config_dir()\nload_config()\nsave_config_value()\nprompt_default()  confirm()"
+            fillcolor = "#001a2e"
+            color     = "#00bfff"
+            fontcolor = "#00bfff"
+        ]
+
+        rsync_ops [
+            label     = "rsync_ops.sh\n─────────────────\nrun_rsync()\nbackup_aiml_papers()\nbackup_computer_science()\nbackup_computers()\nbackup_all_archives()\nbackup_pdf_archive()\nbackup_custom_rsync()"
+            fillcolor = "#001a00"
+            color     = "#39ff14"
+            fontcolor = "#39ff14"
+        ]
+
+        restic_ops [
+            label     = "restic_ops.sh\n─────────────────\nensure_restic_password()\nset_restic_env()\nrestic_init_repo()\nrun_restic_backup()\nrestic_backup_aiml()\nrestic_backup_custom()\nrestic_list_snapshots()\nrestic_restore()\nrestic_prune()"
+            fillcolor = "#0f0015"
+            color     = "#bf00ff"
+            fontcolor = "#bf00ff"
+        ]
+    }
+
+    // ── Config / state files ───────────────────────────────────
+    subgraph cluster_state {
+        label     = "Runtime State"
+        fontcolor = "#ffff00"
+        color     = "#ffff00"
+        style     = "rounded"
+        bgcolor   = "#0a0a00"
+        fontsize  = 12
+
+        config_file [
+            label     = "~/.config/backup-wizard/config\n(key=value overrides)\nAIML_SRC · AIML_DST\nCS_SRC · CS_DST\nCOMPUTERS_SRC · COMPUTERS_DST\nRESITC_REPO_AIML"
+            fillcolor = "#1a1a00"
+            color     = "#ffff00"
+            fontcolor = "#ffff00"
+            shape     = note
+        ]
+
+        pass_file [
+            label     = "~/.config/backup-wizard/\nrestic_password\n(chmod 600)"
+            fillcolor = "#1a0010"
+            color     = "#ff0066"
+            fontcolor = "#ff0066"
+            shape     = note
+        ]
+
+        status_log [
+            label     = "/var/log/backup-wizard/\nlast_run.log\n(one line per job tag\nupdated in-place)"
+            fillcolor = "#1a1a00"
+            color     = "#ffff00"
+            fontcolor = "#ffff00"
+            shape     = note
+        ]
+    }
+
+    // ── System integration ─────────────────────────────────────
+    subgraph cluster_system {
+        label     = "System Integration"
+        fontcolor = "#00f5ff"
+        color     = "#00f5ff"
+        style     = "rounded"
+        bgcolor   = "#00080a"
+        fontsize  = 12
+
+        motd_script [
+            label     = "/etc/update-motd.d/\n94-backup-status\n(runs at login via run-parts)\nReads last_run.log only\nShows: status · mounts · quick-ref"
+            fillcolor = "#001a1a"
+            color     = "#00f5ff"
+            fontcolor = "#00f5ff"
+        ]
+
+        installer [
+            label     = "install.sh\nsymlink → /usr/local/bin/\ncopy → /etc/update-motd.d/\nmkdir /var/log/backup-wizard/\nchmod 1777 (sticky)"
+            fillcolor = "#0a0a1a"
+            color     = "#888888"
+            fontcolor = "#888888"
+        ]
+    }
+
+    // ── External binaries ──────────────────────────────────────
+    subgraph cluster_external {
+        label     = "External Binaries"
+        fontcolor = "#ff6600"
+        color     = "#ff6600"
+        style     = "rounded"
+        bgcolor   = "#0a0500"
+        fontsize  = 12
+
+        rsync_bin  [label="/usr/bin/rsync\n(installed)", fillcolor="#1a0800", color="#ff6600", fontcolor="#ff6600", shape=ellipse]
+        restic_bin [label="/usr/local/bin/restic\nv0.14.0  (installed)\nzstd compression", fillcolor="#1a0800", color="#ff6600", fontcolor="#ff6600", shape=ellipse]
+        pdf_script [label="pdf-backup.sh\n(existing toolkit)\n2026-03-27_220258_pdf-backup/", fillcolor="#1a0800", color="#ff6600", fontcolor="#ff6600", shape=ellipse]
+    }
+
+    // ── Edges ─────────────────────────────────────────────────
+    // wizard sources libs
+    wizard -> common     [color="#00bfff", label="source"]
+    wizard -> rsync_ops  [color="#39ff14", label="source"]
+    wizard -> restic_ops [color="#bf00ff", label="source"]
+
+    // libs source common
+    rsync_ops  -> common [color="#00bfff", style=dashed, label="uses"]
+    restic_ops -> common [color="#00bfff", style=dashed, label="uses"]
+
+    // config flow
+    wizard     -> config_file [color="#ffff00", style=dashed, label="load/save"]
+    common     -> config_file [color="#ffff00", style=dashed]
+    common     -> pass_file   [color="#ff0066", style=dashed, label="reads"]
+    restic_ops -> pass_file   [color="#ff0066", style=dashed, label="creates/reads"]
+
+    // status log
+    common     -> status_log  [color="#ffff00", label="write_status_entry()", style=bold]
+    status_log -> motd_script [color="#00f5ff", label="read at login", style=dashed]
+
+    // external tools
+    rsync_ops  -> rsync_bin  [color="#ff6600", label="exec"]
+    restic_ops -> restic_bin [color="#ff6600", label="exec"]
+    rsync_ops  -> pdf_script [color="#ff6600", label="sudo exec\n(fallback: direct rsync)"]
+    restic_ops -> restic_bin [color="#ff6600"]
+
+    // installer
+    installer -> motd_script [color="#888888", style=dotted, label="deploys"]
+    installer -> wizard      [color="#888888", style=dotted, label="symlinks"]
+}

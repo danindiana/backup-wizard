@@ -1,0 +1,110 @@
+// 01-storage-topology.dot
+// Physical drive layout, mount points, and backup data flows for worlock.
+// Render: dot -Tpng 01-storage-topology.dot -o 01-storage-topology.png
+//         dot -Tsvg 01-storage-topology.dot -o 01-storage-topology.svg
+
+digraph storage_topology {
+
+    graph [
+        bgcolor       = "#0d0d0d"
+        fontname      = "Courier New"
+        fontcolor     = "#cccccc"
+        label         = "worlock — Storage Topology & Backup Flows"
+        labelloc      = "t"
+        fontsize      = 20
+        rankdir       = LR
+        splines = spline
+        pad           = 0.6
+        nodesep       = 0.5
+        ranksep       = 1.2
+    ]
+
+    node [
+        fontname  = "Courier New"
+        fontsize  = 11
+        style     = "filled,rounded"
+        shape     = box
+    ]
+
+    edge [
+        fontname  = "Courier New"
+        fontsize  = 10
+        penwidth  = 2.0
+    ]
+
+    // ── Physical drives ────────────────────────────────────────
+    subgraph cluster_physical {
+        label     = "Physical Drives"
+        fontcolor = "#00f5ff"
+        fontsize  = 13
+        color     = "#00f5ff"
+        style     = "rounded"
+        bgcolor   = "#0a0a1a"
+
+        nvme0 [label="NVMe 0\n(system /)", fillcolor="#0f3460", color="#00f5ff", fontcolor="#00f5ff"]
+        nvme1 [label="NVMe 1\n(camera recordings)", fillcolor="#0f3460", color="#00f5ff", fontcolor="#00f5ff"]
+        sda   [label="sda — WD 4TB\next4  -i 4096\n/mnt/pdf_backup", fillcolor="#1a1a2e", color="#39ff14", fontcolor="#39ff14"]
+        sdb   [label="sdb — Hitachi 2TB\n/mnt/hitachi_2tb\n~1.0T free", fillcolor="#1a1a2e", color="#ff00ff", fontcolor="#ff00ff"]
+        sdc   [label="sdc1 — 5.5T\n/mnt/sdc1\n1.46M PDFs\n+ Telegram", fillcolor="#1a1a2e", color="#00f5ff", fontcolor="#aaaaaa"]
+        sdg   [label="sdg — IronWolf 12TB\nRAID0 member\n⚠ alert at 43°C", fillcolor="#2a1a0a", color="#ff6600", fontcolor="#ff6600"]
+        sdh   [label="sdh — IronWolf 12TB\nRAID0 member", fillcolor="#1a1a2e", color="#ff6600", fontcolor="#ff6600"]
+        md0   [label="md0 — RAID0\n/mnt/raid0\n4.7T PDFs (~2.5M files)", fillcolor="#1a0a0a", color="#ff6600", fontcolor="#ff6600", shape=cylinder]
+    }
+
+    sdg -> md0 [color="#ff6600", style=dashed, label="RAID0"]
+    sdh -> md0 [color="#ff6600", style=dashed]
+
+    // ── Source directories ─────────────────────────────────────
+    subgraph cluster_sources {
+        label     = "Backup Sources  (~22GB)"
+        fontcolor = "#ffff00"
+        fontsize  = 13
+        color     = "#ffff00"
+        style     = "rounded"
+        bgcolor   = "#0a0a0a"
+
+        aiml      [label="AI-ML_Papers\n16GB · 5,937 files\nAgents, transformers,\nBCI, reasoning …", fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+        cs        [label="computer science\n2.3GB · 1,117 files", fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+        computers [label="computers\n3.7GB · 1,540 files", fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+    }
+
+    // ── Backup destinations ────────────────────────────────────
+    subgraph cluster_dests {
+        label     = "Backup Destinations  (/mnt/hitachi_2tb)"
+        fontcolor = "#ff00ff"
+        fontsize  = 13
+        color     = "#ff00ff"
+        style     = "rounded"
+        bgcolor   = "#0a001a"
+
+        aiml_dst      [label="AI-ML_Papers_backup/\n(rsync mirror)", fillcolor="#1a0a2e", color="#ff00ff", fontcolor="#ff00ff"]
+        cs_dst        [label="computer_science_backup/\n(rsync mirror)", fillcolor="#1a0a2e", color="#ff00ff", fontcolor="#ff00ff"]
+        computers_dst [label="computers_backup/\n(rsync mirror)", fillcolor="#1a0a2e", color="#ff00ff", fontcolor="#ff00ff"]
+        restic_repo   [label="restic_repos/ai-ml-papers/\nzstd max · encrypted\nversioned snapshots", fillcolor="#1a0a2e", color="#bf00ff", fontcolor="#bf00ff", shape=cylinder]
+    }
+
+    // ── PDF backup destination ─────────────────────────────────
+    pdf_dst [label="pdf_backup\n(sda /mnt/pdf_backup)\nrsync mirror of RAID0", fillcolor="#0a1a0a", color="#39ff14", fontcolor="#39ff14"]
+
+    // ── camera ────────────────────────────────────────────────
+    camera [label="camera_recordings/\nHikvision MKV\n/mnt/nvme0", fillcolor="#0f3460", color="#00f5ff", fontcolor="#aaaaaa"]
+    nvme1 -> camera [color="#00f5ff", style=dotted]
+
+    // ── Rsync backup arrows ────────────────────────────────────
+    aiml      -> aiml_dst      [color="#39ff14", label="rsync\n--aiml",      style=bold]
+    cs        -> cs_dst        [color="#39ff14", label="rsync\n--cs",        style=bold]
+    computers -> computers_dst [color="#39ff14", label="rsync\n--computers", style=bold]
+    md0       -> pdf_dst       [color="#ff6600", label="rsync\n--pdf\n(sudo)", style=bold]
+
+    // ── Restic arrow ───────────────────────────────────────────
+    aiml -> restic_repo [color="#bf00ff", label="restic\n--aiml-restic", style=dashed, penwidth=2]
+
+    // ── Drive → mount grouping ─────────────────────────────────
+    sdb -> aiml_dst      [color="#444444", style=dotted, arrowhead=none]
+    sda -> pdf_dst       [color="#444444", style=dotted, arrowhead=none]
+
+    // ── Source files live on NVMe0 ─────────────────────────────
+    nvme0 -> aiml      [color="#444444", style=dotted, arrowhead=none, label="~/Documents"]
+    nvme0 -> cs        [color="#444444", style=dotted, arrowhead=none]
+    nvme0 -> computers [color="#444444", style=dotted, arrowhead=none]
+}
