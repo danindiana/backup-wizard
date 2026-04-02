@@ -158,6 +158,42 @@ restic_backup_aiml() {
 }
 
 # ---------------------------------------------------------------------------
+# Preset: computer science restic backup
+# ---------------------------------------------------------------------------
+restic_backup_cs() {
+    local dry_run="${1:-0}"
+    local src="${CS_SRC:-$DEFAULT_CS_SRC}"
+    local repo="${RESTIC_REPO_CS:-${DEFAULT_RESTIC_REPO_BASE}/computer-science}"
+
+    require_mount "/mnt/hitachi_2tb" || return 1
+    run_restic_backup "$src" "$repo" "computer-science" "$dry_run" "max"
+}
+
+# ---------------------------------------------------------------------------
+# Preset: computers restic backup
+# ---------------------------------------------------------------------------
+restic_backup_computers() {
+    local dry_run="${1:-0}"
+    local src="${COMPUTERS_SRC:-$DEFAULT_COMPUTERS_SRC}"
+    local repo="${RESTIC_REPO_COMPUTERS:-${DEFAULT_RESTIC_REPO_BASE}/computers}"
+
+    require_mount "/mnt/hitachi_2tb" || return 1
+    run_restic_backup "$src" "$repo" "computers" "$dry_run" "max"
+}
+
+# ---------------------------------------------------------------------------
+# Convenience: restic snapshot all three paper archives in one shot
+# ---------------------------------------------------------------------------
+restic_backup_all_archives() {
+    local dry_run="${1:-0}"
+    log_header "Restic: All Archives (AI-ML Papers + computer science + computers)"
+    restic_backup_aiml      "$dry_run"
+    restic_backup_cs        "$dry_run"
+    restic_backup_computers "$dry_run"
+    log_ok "All restic archive backups complete."
+}
+
+# ---------------------------------------------------------------------------
 # Preset: Custom source restic backup (interactive)
 # ---------------------------------------------------------------------------
 restic_backup_custom() {

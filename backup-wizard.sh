@@ -42,6 +42,9 @@ FLAGS
   --computers         Rsync computers → /mnt/hitachi_2tb/computers_backup
   --all-archives      Rsync all three paper archives in one shot
   --aiml-restic       Restic (compressed) backup of AI-ML Papers
+  --cs-restic         Restic (compressed) backup of computer science
+  --computers-restic  Restic (compressed) backup of computers
+  --all-restic        Restic all three paper archives in one shot
   --pdf               PDF archive rsync via pdf-backup.sh (requires sudo)
   --help              Show this help
 
@@ -52,6 +55,9 @@ EXAMPLES
   ./backup-wizard.sh --cs               # quick rsync of computer science
   ./backup-wizard.sh --computers        # quick rsync of computers
   ./backup-wizard.sh --aiml-restic      # compressed snapshot of AI-ML papers
+  ./backup-wizard.sh --cs-restic        # compressed snapshot of computer science
+  ./backup-wizard.sh --computers-restic # compressed snapshot of computers
+  ./backup-wizard.sh --all-restic       # restic snapshot all three archives
   sudo ./backup-wizard.sh --pdf         # full PDF archive backup
 EOF
             exit 0
@@ -78,6 +84,18 @@ EOF
             ;;
         --aiml-restic)
             restic_backup_aiml 0
+            exit $?
+            ;;
+        --cs-restic)
+            restic_backup_cs 0
+            exit $?
+            ;;
+        --computers-restic)
+            restic_backup_computers 0
+            exit $?
+            ;;
+        --all-restic)
+            restic_backup_all_archives 0
             exit $?
             ;;
         --pdf)
@@ -215,12 +233,15 @@ menu_restic() {
     while true; do
         echo ""
         echo -e "${BOLD}${MAGENTA}── Restic (Compressed) Backups ────────────────────────${RESET}"
-        echo "  1) AI-ML Papers  →  restic repo (max compression)"
-        echo "  2) Custom source →  restic repo"
-        echo "  3) List snapshots"
-        echo "  4) Restore from snapshot"
-        echo "  5) Prune old snapshots"
-        echo "  6) Initialize new repository"
+        echo "  1) ALL archives  (AI-ML Papers + computer science + computers)"
+        echo "  2) AI-ML Papers      →  restic repo (max compression)"
+        echo "  3) computer science  →  restic repo (max compression)"
+        echo "  4) computers         →  restic repo (max compression)"
+        echo "  5) Custom source →  restic repo"
+        echo "  6) List snapshots"
+        echo "  7) Restore from snapshot"
+        echo "  8) Prune old snapshots"
+        echo "  9) Initialize new repository"
         echo "  b) Back"
         echo ""
         read -r -p "$(echo -e "${CYAN}Select: ${RESET}")" choice
@@ -228,27 +249,48 @@ menu_restic() {
             1)
                 local dry=0
                 confirm "Dry run first?" && dry=1
+                restic_backup_all_archives "$dry"
+                [[ "$dry" == "1" ]] && confirm "Proceed with real backup?" && restic_backup_all_archives 0
+                pause
+                ;;
+            2)
+                local dry=0
+                confirm "Dry run first?" && dry=1
                 restic_backup_aiml "$dry"
                 [[ "$dry" == "1" ]] && confirm "Proceed with real backup?" && restic_backup_aiml 0
                 pause
                 ;;
-            2)
-                restic_backup_custom
-                pause
-                ;;
             3)
-                restic_list_snapshots
+                local dry=0
+                confirm "Dry run first?" && dry=1
+                restic_backup_cs "$dry"
+                [[ "$dry" == "1" ]] && confirm "Proceed with real backup?" && restic_backup_cs 0
                 pause
                 ;;
             4)
-                restic_restore
+                local dry=0
+                confirm "Dry run first?" && dry=1
+                restic_backup_computers "$dry"
+                [[ "$dry" == "1" ]] && confirm "Proceed with real backup?" && restic_backup_computers 0
                 pause
                 ;;
             5)
-                restic_prune
+                restic_backup_custom
                 pause
                 ;;
             6)
+                restic_list_snapshots
+                pause
+                ;;
+            7)
+                restic_restore
+                pause
+                ;;
+            8)
+                restic_prune
+                pause
+                ;;
+            9)
                 prompt_default "New repo path" "${DEFAULT_RESTIC_REPO_BASE}/new-repo"
                 restic_init_repo "$REPLY"
                 pause

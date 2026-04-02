@@ -32,6 +32,10 @@ DEFAULT_COMPUTERS_DST="/mnt/hitachi_2tb/computers_backup"
 DEFAULT_PDF_SRC="/mnt/raid0"
 DEFAULT_PDF_DST="/mnt/pdf_backup"
 DEFAULT_RESTIC_REPO_BASE="/mnt/hitachi_2tb/restic_repos"
+# Per-archive restic repo paths (overridable via config file)
+DEFAULT_RESTIC_REPO_AIML="/mnt/hitachi_2tb/restic_repos/ai-ml-papers"
+DEFAULT_RESTIC_REPO_CS="/mnt/hitachi_2tb/restic_repos/computer-science"
+DEFAULT_RESTIC_REPO_COMPUTERS="/mnt/hitachi_2tb/restic_repos/computers"
 PDF_BACKUP_SCRIPT="/home/jeb/Documents/claude_creations/2026-03-27_220258_pdf-backup/pdf-backup.sh"
 
 # ---------------------------------------------------------------------------
